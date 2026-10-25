@@ -1,0 +1,591 @@
+local GAMES = {
+    [10765288803] = {
+        Name = "Break and Steal an Egg",
+        Url = "https://raw.githubusercontent.com/ZeroHubX2/Break-and-Steal-an-Egg/refs/heads/main/Zero%20Hub",
+    },
+    [10512942223] = {
+        Name = "Anime Zero",
+        Url = "https://raw.githubusercontent.com/ZeroHubX2/Zero-X/refs/heads/main/Anime%20Zero",
+    },
+    [1720936166] = {
+        Name = "All Star Tower Defense",
+        Url = "https://raw.githubusercontent.com/ZeroHubX2/All-Star-Towerdefense/refs/heads/main/Zero%20Hub",
+    },
+}
+local VERSION = "v1.0"
+local DISCORD = "discord.gg/22RuqrckH"
+local LOGO = "rbxthumb://type=Asset&id=132023049848714&w=420&h=420"
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local Env = (getgenv and getgenv()) or _G
+if Env.ZH_LoaderCleanup then pcall(Env.ZH_LoaderCleanup) end
+local DEMO = Env.ZH_LoaderDemo
+Env.ZH_LoaderDemo = nil
+
+local C = {
+    Bg = Color3.fromRGB(11, 13, 18),
+    Card = Color3.fromRGB(20, 24, 32),
+    Raise = Color3.fromRGB(28, 33, 43),
+    Hover = Color3.fromRGB(34, 40, 52),
+    Stroke = Color3.fromRGB(37, 43, 56),
+    Text = Color3.fromRGB(233, 237, 245),
+    Sub = Color3.fromRGB(143, 152, 170),
+    Dim = Color3.fromRGB(92, 100, 117),
+    Good = Color3.fromRGB(52, 211, 153),
+    Warn = Color3.fromRGB(251, 191, 36),
+    Bad = Color3.fromRGB(248, 113, 113),
+    Accent = Color3.fromRGB(59, 130, 246),
+}
+local ACCENT_HI = C.Accent:Lerp(Color3.new(1, 1, 1), 0.35)
+local FONT = "rbxasset://fonts/families/BuilderSans.json"
+local function font(w) return Font.new(FONT, w or Enum.FontWeight.Regular) end
+local MONO = Font.new("rbxasset://fonts/families/RobotoMono.json", Enum.FontWeight.Medium)
+local W_MED, W_SEMI, W_BOLD = Enum.FontWeight.Medium, Enum.FontWeight.SemiBold, Enum.FontWeight.Bold
+
+local function new(class, props, children)
+    local o = Instance.new(class)
+    local parent
+    for k, v in pairs(props or {}) do
+        if k == "Parent" then parent = v else o[k] = v end
+    end
+    for _, c in ipairs(children or {}) do c.Parent = o end
+    if parent then o.Parent = parent end
+    return o
+end
+local function corner(r) return new("UICorner", { CornerRadius = r and UDim.new(0, r) or UDim.new(1, 0) }) end
+local function stroke(col, t, tr)
+    return new("UIStroke", { Color = col or C.Stroke, Thickness = t or 1, Transparency = tr or 0, ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
+end
+local function tween(o, t, props, style, dir)
+    local tw = TweenService:Create(o, TweenInfo.new(t, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out), props)
+    tw:Play()
+    return tw
+end
+local function label(props)
+    local l = new("TextLabel", {
+        BackgroundTransparency = 1, TextColor3 = C.Text, FontFace = font(), TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Center, Text = "",
+    })
+    local parent = props.Parent
+    for k, v in pairs(props) do
+        if k ~= "Parent" then l[k] = v end
+    end
+    if parent then l.Parent = parent end
+    return l
+end
+local function fade(seq)
+    local kps = {}
+    for _, p in ipairs(seq) do table.insert(kps, NumberSequenceKeypoint.new(p[1], p[2])) end
+    return NumberSequence.new(kps)
+end
+
+local LocalPlayer = Players.LocalPlayer
+while not LocalPlayer do
+    task.wait(0.1)
+    LocalPlayer = Players.LocalPlayer
+end
+
+local alive = true
+local conns = {}
+local function connect(sig, fn)
+    local c = sig:Connect(fn)
+    table.insert(conns, c)
+    return c
+end
+
+local gui = new("ScreenGui", {
+    Name = "ZeroHubLoader", ResetOnSpawn = false, IgnoreGuiInset = true,
+    ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 2147483646,
+})
+if not pcall(function() gui.Parent = (gethui and gethui()) or CoreGui end) or not gui.Parent then
+    gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local backdrop = new("Frame", {
+    Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1,
+    BorderSizePixel = 0, ZIndex = 1, Parent = gui,
+})
+
+local CARD_W, CARD_H = 420, 446
+local card = new("Frame", {
+    AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 14), Size = UDim2.fromOffset(CARD_W, CARD_H),
+    BackgroundColor3 = C.Bg, BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 5, Parent = gui,
+}, { corner(14) })
+local cardStroke = stroke(C.Stroke, 1, 1)
+cardStroke.Parent = card
+local glow = new("Frame", {
+    AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(1, 10, 1, 10),
+    BackgroundTransparency = 1, ZIndex = 0, Parent = card,
+}, { corner(18) })
+local glowStroke = stroke(C.Accent, 4, 1)
+glowStroke.Parent = glow
+local uiScale = new("UIScale", { Scale = 0.96, Parent = card })
+local content = new("CanvasGroup", {
+    Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, GroupTransparency = 1, Parent = card,
+}, { corner(14) })
+
+local topLine = new("Frame", {
+    Size = UDim2.new(1, 0, 0, 2), BackgroundColor3 = C.Accent, BorderSizePixel = 0, Parent = content,
+})
+local topGrad = new("UIGradient", {
+    Color = ColorSequence.new(C.Accent, ACCENT_HI),
+    Transparency = fade({ { 0, 1 }, { 0.3, 0.2 }, { 0.5, 0 }, { 0.7, 0.2 }, { 1, 1 } }),
+    Offset = Vector2.new(-1, 0), Parent = topLine,
+})
+
+local inner = new("Frame", {
+    Position = UDim2.fromOffset(22, 22), Size = UDim2.new(1, -44, 1, -44), BackgroundTransparency = 1, Parent = content,
+})
+
+local logoHolder = new("Frame", { Size = UDim2.fromOffset(48, 48), BackgroundTransparency = 1, Parent = inner })
+local tile = new("Frame", {
+    Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ClipsDescendants = true, Parent = logoHolder,
+}, {
+    new("UICorner", { CornerRadius = UDim.new(0.26, 0) }),
+    new("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(26, 32, 48), Color3.fromRGB(10, 12, 17)) }),
+})
+stroke(C.Accent, 1.5, 0.35).Parent = tile
+new("ImageLabel", {
+    AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.86, 0.86),
+    BackgroundTransparency = 1, Image = LOGO, ScaleType = Enum.ScaleType.Fit, ZIndex = 2, Parent = tile,
+})
+local shine = new("Frame", {
+    Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 3, Parent = tile,
+}, { new("UICorner", { CornerRadius = UDim.new(0.26, 0) }) })
+local shineGrad = new("UIGradient", {
+    Rotation = 25, Offset = Vector2.new(-1, 0), Parent = shine,
+    Transparency = fade({ { 0, 1 }, { 0.42, 1 }, { 0.5, 0.72 }, { 0.58, 1 }, { 1, 1 } }),
+})
+
+label({ Text = "Zero Hub", FontFace = font(W_BOLD), TextSize = 20, Position = UDim2.fromOffset(64, 3), Size = UDim2.new(1, -150, 0, 22), Parent = inner })
+label({ Text = "Zero Loader", TextColor3 = C.Sub, TextSize = 13, Position = UDim2.fromOffset(64, 26), Size = UDim2.new(1, -150, 0, 18), Parent = inner })
+
+local versionPill = new("Frame", {
+    AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -34, 0, 10), Size = UDim2.fromOffset(46, 24),
+    BackgroundColor3 = C.Card, BorderSizePixel = 0, Parent = inner,
+}, { corner(12), stroke(C.Stroke) })
+label({ Text = DEMO and "DEMO" or VERSION, FontFace = MONO, TextSize = 11, TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Center, Size = UDim2.fromScale(1, 1), Parent = versionPill })
+
+local closeBtn = new("TextButton", {
+    AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 10), Size = UDim2.fromOffset(24, 24),
+    BackgroundColor3 = C.Card, BorderSizePixel = 0, AutoButtonColor = false, Text = "", Parent = inner,
+}, { corner(12), stroke(C.Stroke) })
+for _, r in ipairs({ 45, -45 }) do
+    new("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(10, 1.5),
+        Rotation = r, BackgroundColor3 = C.Sub, BorderSizePixel = 0, Parent = closeBtn,
+    })
+end
+
+new("Frame", { Position = UDim2.fromOffset(0, 66), Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = C.Stroke, BorderSizePixel = 0, Parent = inner })
+
+local gamePanel = new("Frame", {
+    Position = UDim2.fromOffset(0, 80), Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = C.Card,
+    BorderSizePixel = 0, Parent = inner,
+}, { corner(10), stroke(C.Stroke) })
+label({ Text = "GAME", FontFace = font(W_SEMI), TextSize = 10, TextColor3 = C.Dim, Position = UDim2.fromOffset(14, 9), Size = UDim2.new(0.5, 0, 0, 12), Parent = gamePanel })
+local gameName = label({ Text = "Detecting…", FontFace = font(W_SEMI), TextSize = 15, Position = UDim2.fromOffset(14, 23), Size = UDim2.new(1, -150, 0, 20), TextTruncate = Enum.TextTruncate.AtEnd, Parent = gamePanel })
+label({ Text = "GAME ID", FontFace = font(W_SEMI), TextSize = 10, TextColor3 = C.Dim, TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -14, 0, 9), Size = UDim2.fromOffset(130, 12), Parent = gamePanel })
+local gameIdLbl = label({ Text = tostring(game.GameId), FontFace = MONO, TextSize = 12, TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -14, 0, 24), Size = UDim2.fromOffset(130, 18), Parent = gamePanel })
+
+local stepsFrame = new("Frame", { Position = UDim2.fromOffset(0, 146), Size = UDim2.new(1, 0, 0, 180), BackgroundTransparency = 1, Parent = inner })
+
+local spinners = {}
+local Step = {}
+Step.__index = Step
+local stepList = {}
+local function addStep(title)
+    local i = #stepList
+    local row = new("Frame", { Position = UDim2.fromOffset(0, i * 30), Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 1, Parent = stepsFrame })
+    local dot = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 2, 0.5, 0), Size = UDim2.fromOffset(16, 16), BackgroundTransparency = 1, Parent = row })
+    local ringF = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = dot }, { corner() })
+    local rs = stroke(C.Stroke, 1.5, 0)
+    rs.Parent = ringF
+    local arc = new("UIGradient", { Transparency = fade({ { 0, 0 }, { 0.6, 0.85 }, { 0.75, 1 }, { 1, 1 } }), Enabled = false, Parent = rs })
+    local fill = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(0, 0), BackgroundColor3 = C.Accent, BorderSizePixel = 0, Parent = dot }, { corner() })
+    local tick = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false, Parent = fill })
+    new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(5.6, 8.9), Size = UDim2.fromOffset(4.4, 1.8), Rotation = 45, BackgroundColor3 = C.Bg, BorderSizePixel = 0, Parent = tick })
+    new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(9.4, 7.6), Size = UDim2.fromOffset(7.6, 1.8), Rotation = -50, BackgroundColor3 = C.Bg, BorderSizePixel = 0, Parent = tick })
+    local mark = label({ Text = "!", FontFace = font(W_BOLD), TextSize = 12, TextColor3 = C.Bg, TextXAlignment = Enum.TextXAlignment.Center, Size = UDim2.fromScale(1, 1), Visible = false, Parent = fill })
+    local name = label({ Text = title, TextSize = 14, TextColor3 = C.Dim, Position = UDim2.fromOffset(28, 0), Size = UDim2.new(0.6, -28, 1, 0), Parent = row })
+    local detail = label({ Text = "", FontFace = MONO, TextSize = 11, TextColor3 = C.Dim, TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0.5, 0, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = row })
+    local s = setmetatable({ title = title, rs = rs, arc = arc, fill = fill, tick = tick, mark = mark, name = name, detail = detail, row = row }, Step)
+    table.insert(stepList, s)
+    return s
+end
+function Step:_spin(on)
+    self.arc.Enabled = on
+    spinners[self.arc] = on or nil
+end
+function Step:Reset()
+    self:_spin(false)
+    self.rs.Color, self.rs.Transparency = C.Stroke, 0
+    self.fill.Size = UDim2.fromOffset(0, 0)
+    self.tick.Visible, self.mark.Visible = false, false
+    self.name.TextColor3, self.detail.TextColor3 = C.Dim, C.Dim
+    self.name.FontFace = font()
+    self.detail.Text = ""
+end
+function Step:Run(detail)
+    self:_spin(true)
+    tween(self.rs, 0.2, { Color = C.Accent })
+    tween(self.name, 0.2, { TextColor3 = C.Text })
+    self.name.FontFace = font(W_MED)
+    self.detail.Text = detail or ""
+    tween(self.detail, 0.2, { TextColor3 = C.Sub })
+end
+function Step:_finish(col, detail, icon)
+    self:_spin(false)
+    tween(self.rs, 0.2, { Color = col, Transparency = 1 })
+    self.fill.BackgroundColor3 = col
+    self.tick.Visible = icon == "tick"
+    self.mark.Visible = icon == "mark"
+    tween(self.fill, 0.35, { Size = UDim2.fromOffset(16, 16) }, Enum.EasingStyle.Back)
+    self.name.FontFace = font()
+    tween(self.name, 0.25, { TextColor3 = icon == "tick" and C.Sub or col })
+    if detail then self.detail.Text = detail end
+    tween(self.detail, 0.25, { TextColor3 = icon == "tick" and C.Dim or col })
+end
+function Step:Done(detail) self:_finish(C.Accent, detail, "tick") end
+function Step:Warn(detail) self:_finish(C.Warn, detail, "mark") end
+function Step:Fail(detail) self:_finish(C.Bad, detail, "mark") end
+
+local sExec = addStep("Checking executor")
+local sReady = addStep("Waiting for the game")
+local sGame = addStep("Detecting game")
+local sPlace = addStep("Verifying place")
+local sFetch = addStep("Downloading script")
+local sBuild = addStep("Compiling")
+
+local statusLbl = label({ Text = "Starting…", TextSize = 12, TextColor3 = C.Sub, Position = UDim2.fromOffset(0, 334), Size = UDim2.new(1, -60, 0, 16), TextTruncate = Enum.TextTruncate.AtEnd, Parent = inner })
+local pctLbl = label({ Text = "0%", FontFace = MONO, TextSize = 12, TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 334), Size = UDim2.fromOffset(60, 16), Parent = inner })
+local track = new("Frame", { Position = UDim2.fromOffset(0, 356), Size = UDim2.new(1, 0, 0, 6), BackgroundColor3 = C.Raise, BorderSizePixel = 0, ClipsDescendants = true, Parent = inner }, { corner(3) })
+local bar = new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ClipsDescendants = true, Parent = track }, {
+    corner(3),
+    new("UIGradient", { Color = ColorSequence.new(C.Accent, ACCENT_HI) }),
+})
+local shimmer = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0, BorderSizePixel = 0, Parent = bar })
+local shimmerGrad = new("UIGradient", {
+    Transparency = fade({ { 0, 1 }, { 0.4, 1 }, { 0.5, 0.55 }, { 0.6, 1 }, { 1, 1 } }),
+    Offset = Vector2.new(-1, 0), Parent = shimmer,
+})
+local barColor = bar:FindFirstChildOfClass("UIGradient")
+
+local footer = new("Frame", { Position = UDim2.fromOffset(0, 376), Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 1, Parent = inner })
+label({ Text = DISCORD, FontFace = MONO, TextSize = 11, TextColor3 = C.Dim, Size = UDim2.new(0.5, 0, 1, 0), Parent = footer })
+local execLbl = label({ Text = "", FontFace = MONO, TextSize = 11, TextColor3 = C.Dim, TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.new(0.5, 0, 1, 0), Parent = footer })
+
+local actions = new("Frame", { Position = UDim2.fromOffset(0, 372), Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, Visible = false, Parent = inner })
+local function button(text, primary)
+    local b = new("TextButton", {
+        Size = UDim2.new(0.5, -5, 1, 0), BackgroundColor3 = primary and C.Accent or C.Card, BorderSizePixel = 0,
+        AutoButtonColor = false, Text = text, FontFace = font(W_SEMI), TextSize = 13,
+        TextColor3 = primary and Color3.new(1, 1, 1) or C.Text, Parent = actions,
+    }, { corner(8) })
+    if not primary then stroke(C.Stroke).Parent = b end
+    local base = b.BackgroundColor3
+    connect(b.MouseEnter, function() tween(b, 0.15, { BackgroundColor3 = primary and ACCENT_HI or C.Hover }) end)
+    connect(b.MouseLeave, function() tween(b, 0.2, { BackgroundColor3 = base }) end)
+    return b
+end
+local btnLeft = button("", false)
+local btnRight = button("", true)
+btnRight.Position = UDim2.new(0.5, 5, 0, 0)
+
+local pct = new("NumberValue", { Value = 0 })
+connect(pct.Changed, function(v) pctLbl.Text = string.format("%d%%", math.floor(v + 0.5)) end)
+local function setProgress(p, col)
+    tween(bar, 0.5, { Size = UDim2.fromScale(math.clamp(p, 0, 1), 1) })
+    tween(pct, 0.5, { Value = math.clamp(p, 0, 1) * 100 })
+    if col then barColor.Color = ColorSequence.new(col, col:Lerp(Color3.new(1, 1, 1), 0.25)) end
+end
+local function setStatus(t, col)
+    statusLbl.Text = t
+    statusLbl.TextColor3 = col or C.Sub
+end
+
+local function fitScale()
+    local cam = workspace.CurrentCamera
+    local vp = cam and cam.ViewportSize or Vector2.new(1280, 720)
+    local s = math.clamp(math.min((vp.X - 32) / CARD_W, (vp.Y - 32) / CARD_H), 0.55, 1)
+    return s
+end
+local baseScale = fitScale()
+task.spawn(function()
+    local cam = workspace.CurrentCamera
+    while not cam and alive do
+        task.wait(0.1)
+        cam = workspace.CurrentCamera
+    end
+    if not cam then return end
+    connect(cam:GetPropertyChangedSignal("ViewportSize"), function()
+        baseScale = fitScale()
+        uiScale.Scale = baseScale
+    end)
+end)
+
+local t0 = os.clock()
+connect(RunService.RenderStepped, function(dt)
+    local t = os.clock() - t0
+    for g in pairs(spinners) do g.Rotation = (t * 420) % 360 end
+end)
+
+task.spawn(function()
+    while alive do
+        topGrad.Offset = Vector2.new(-1, 0)
+        tween(topGrad, 2.2, { Offset = Vector2.new(1, 0) }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+        shimmerGrad.Offset = Vector2.new(-1, 0)
+        tween(shimmerGrad, 1.4, { Offset = Vector2.new(1, 0) }, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+        task.wait(2.6)
+    end
+end)
+task.spawn(function()
+    task.wait(0.6)
+    while alive do
+        shineGrad.Offset = Vector2.new(-1, 0)
+        tween(shineGrad, 1.1, { Offset = Vector2.new(1, 0) }, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+        task.wait(3.2)
+    end
+end)
+task.spawn(function()
+    while alive do
+        tween(glowStroke, 1.6, { Transparency = 0.82 }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+        task.wait(1.6)
+        if not alive then break end
+        tween(glowStroke, 1.6, { Transparency = 0.94 }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+        task.wait(1.6)
+    end
+end)
+
+local function cleanup()
+    if not alive then return end
+    alive = false
+    for _, c in ipairs(conns) do pcall(function() c:Disconnect() end) end
+    gui:Destroy()
+    Env.ZH_LoaderCleanup = nil
+end
+Env.ZH_LoaderCleanup = cleanup
+
+local function intro()
+    tween(backdrop, 0.45, { BackgroundTransparency = 0.45 })
+    tween(card, 0.55, { BackgroundTransparency = 0, Position = UDim2.fromScale(0.5, 0.5) })
+    tween(cardStroke, 0.55, { Transparency = 0 })
+    tween(content, 0.55, { GroupTransparency = 0 })
+    uiScale.Scale = baseScale * 0.96
+    tween(uiScale, 0.6, { Scale = baseScale }, Enum.EasingStyle.Back)
+end
+local function outro(cb)
+    tween(content, 0.3, { GroupTransparency = 1 })
+    tween(uiScale, 0.35, { Scale = baseScale * 0.97 })
+    tween(card, 0.35, { BackgroundTransparency = 1, Position = UDim2.new(0.5, 0, 0.5, -10) })
+    tween(cardStroke, 0.3, { Transparency = 1 })
+    tween(glowStroke, 0.3, { Transparency = 1 })
+    tween(backdrop, 0.45, { BackgroundTransparency = 1 })
+    task.delay(0.5, function()
+        cleanup()
+        if cb then cb() end
+    end)
+end
+
+local leftCb, rightCb
+connect(btnLeft.MouseButton1Click, function() if leftCb then leftCb() end end)
+connect(btnRight.MouseButton1Click, function() if rightCb then rightCb() end end)
+connect(closeBtn.MouseEnter, function() tween(closeBtn, 0.15, { BackgroundColor3 = C.Hover }) end)
+connect(closeBtn.MouseLeave, function() tween(closeBtn, 0.2, { BackgroundColor3 = C.Card }) end)
+connect(closeBtn.MouseButton1Click, function() outro() end)
+
+local function showActions(leftText, lcb, rightText, rcb)
+    btnLeft.Text, btnRight.Text = leftText, rightText
+    leftCb, rightCb = lcb, rcb
+    footer.Visible = false
+    actions.Visible = true
+    actions.Position = UDim2.fromOffset(0, 380)
+    tween(actions, 0.35, { Position = UDim2.fromOffset(0, 372) })
+end
+local function hideActions()
+    actions.Visible = false
+    footer.Visible = true
+end
+
+local function pace(since, min)
+    local left = (DEMO and 1.2 or min or 0.28) - (os.clock() - since)
+    if left > 0 then task.wait(left) end
+end
+
+local run
+run = function()
+    hideActions()
+    for _, s in ipairs(stepList) do s:Reset() end
+    barColor.Color = ColorSequence.new(C.Accent, ACCENT_HI)
+    setProgress(0)
+    local total = #stepList + 1
+
+    local at = os.clock()
+    sExec:Run()
+    setStatus("Checking executor capabilities…")
+    local execName = "Unknown"
+    pcall(function()
+        if identifyexecutor then
+            local n, v = identifyexecutor()
+            execName = tostring(n) .. (v and (" " .. tostring(v)) or "")
+        end
+    end)
+    execLbl.Text = execName
+    local hasLoad = type(loadstring) == "function"
+    local hasHttp = pcall(function() return game.HttpGet end)
+    pace(at)
+    if not alive then return end
+    if not (hasLoad and hasHttp) then
+        sExec:Fail(not hasLoad and "loadstring missing" or "HttpGet missing")
+        setProgress(1 / total, C.Bad)
+        setStatus("Your executor can't run this loader.", C.Bad)
+        showActions("Close", outro, "Retry", run)
+        return
+    end
+    sExec:Done(execName)
+    setProgress(1 / total)
+
+    at = os.clock()
+    sReady:Run()
+    setStatus("Waiting for the game to finish loading…")
+    if not game:IsLoaded() then game.Loaded:Wait() end
+    local waitChar = os.clock()
+    while alive and not LocalPlayer.Character and os.clock() - waitChar < 10 do task.wait(0.1) end
+    local char = LocalPlayer.Character
+    if char then pcall(function() char:WaitForChild("HumanoidRootPart", 10) end) end
+    pace(at)
+    if not alive then return end
+    sReady:Done("ready")
+    setProgress(2 / total)
+
+    at = os.clock()
+    sGame:Run(tostring(game.GameId))
+    setStatus("Matching this game against the supported list…")
+    local info = GAMES[game.GameId]
+    if DEMO == "unsupported" then
+        info = nil
+    elseif DEMO and not info then
+        info = GAMES[next(GAMES)]
+    end
+    local placeName
+    task.spawn(function()
+        local ok, pi = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId) end)
+        if ok and type(pi) == "table" then placeName = pi.Name end
+    end)
+    pace(at, 0.4)
+    if not alive then return end
+    if not info then
+        gameName.Text = placeName or "Unsupported game"
+        gameName.TextColor3 = C.Bad
+        sGame:Fail("not supported")
+        setProgress(3 / total, C.Bad)
+        local names = {}
+        for _, g in pairs(GAMES) do table.insert(names, g.Name) end
+        table.sort(names)
+        setStatus("Supported: " .. table.concat(names, ", "), C.Bad)
+        showActions("Close", outro, "Copy Game ID", function()
+            if setclipboard then
+                pcall(setclipboard, tostring(game.GameId))
+                setStatus("Game ID copied to clipboard.", C.Good)
+            else
+                setStatus("Clipboard isn't available. Game ID: " .. tostring(game.GameId), C.Warn)
+            end
+        end)
+        return
+    end
+    gameName.Text = info.Name
+    gameName.TextColor3 = C.Text
+    sGame:Done(info.Name)
+    setProgress(3 / total)
+
+    at = os.clock()
+    sPlace:Run(tostring(game.PlaceId))
+    setStatus("Verifying the current place…")
+    local waited = os.clock()
+    while not placeName and os.clock() - waited < 1.5 do task.wait(0.05) end
+    pace(at)
+    if not alive then return end
+    if game.PlaceId == 0 then
+        sPlace:Warn("studio / local")
+    else
+        sPlace:Done(tostring(game.PlaceId))
+    end
+    gameIdLbl.Text = tostring(game.GameId)
+    setProgress(4 / total)
+
+    at = os.clock()
+    sFetch:Run()
+    local src, err
+    for attempt = 1, 3 do
+        setStatus(attempt == 1 and "Downloading the latest build…" or ("Retrying download (" .. attempt .. "/3)…"))
+        local ok, res
+        if DEMO then
+            task.wait(0.6)
+            ok, res = DEMO ~= "error", DEMO == "error" and "HTTP 404 Not Found (demo)" or string.rep(" ", 641269)
+        else
+            ok, res = pcall(function() return game:HttpGet(info.Url) end)
+        end
+        if ok and type(res) == "string" and #res > 0 and not res:find("^404") then
+            src = res
+            break
+        end
+        err = ok and "empty response" or tostring(res)
+        if attempt < 3 then task.wait(1) end
+    end
+    pace(at)
+    if not alive then return end
+    if not src then
+        sFetch:Fail("failed")
+        setProgress(5 / total, C.Bad)
+        setStatus("Download failed: " .. tostring(err), C.Bad)
+        showActions("Close", outro, "Retry", run)
+        return
+    end
+    sFetch:Done(string.format("%.1f KB", #src / 1024))
+    setProgress(5 / total)
+
+    at = os.clock()
+    sBuild:Run()
+    setStatus("Compiling script…")
+    local fn, cerr
+    if DEMO then
+        fn = function() end
+    else
+        fn, cerr = loadstring(src)
+    end
+    pace(at)
+    if not alive then return end
+    if not fn then
+        sBuild:Fail("error")
+        setProgress(6 / total, C.Bad)
+        setStatus("Compile error: " .. tostring(cerr), C.Bad)
+        showActions("Close", outro, "Retry", run)
+        return
+    end
+    sBuild:Done("ok")
+    setProgress(1, C.Good)
+    setStatus("Launching " .. info.Name .. "…", C.Good)
+    task.wait(DEMO and 1.2 or 0.55)
+    if not alive then return end
+    if DEMO then
+        setStatus("Demo complete · nothing was launched", C.Good)
+        showActions("Close", outro, "Replay", run)
+        return
+    end
+    outro(function()
+        task.spawn(function()
+            local ok, e = pcall(fn)
+            if not ok then warn("[Zero Hub] " .. tostring(e)) end
+        end)
+    end)
+end
+
+intro()
+task.delay(0.35, function()
+    if alive then run() end
+end)
